@@ -1,0 +1,8 @@
+.env
+datos_ecommerce.json
+__pycache__/
+*.pyc
+*.log
+collector.log
+.DS_Store
+model_comparison.png
