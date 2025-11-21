@@ -26,6 +26,12 @@ jobs:
       env:
         COSMOS_CONNECTION_STRING: ${{ secrets.COSMOS_CONNECTION_STRING }}
       run: |
+        echo "🔍 Verificando secret..."
+        if [ -z "$COSMOS_CONNECTION_STRING" ]; then
+          echo "❌ ERROR: COSMOS_CONNECTION_STRING está vacío"
+          exit 1
+        fi
+        echo "✅ Secret encontrado (${#COSMOS_CONNECTION_STRING} caracteres)"
         echo "COSMOS_CONNECTION_STRING=${COSMOS_CONNECTION_STRING}" > .env
     
     - name: Run data collector
