@@ -7,6 +7,7 @@ import numpy as np
 from datetime import datetime
 import pickle
 import os
+import time
 
 from azure_connector import AzureCosmosConnector
 from models import PricePredictor
@@ -18,6 +19,53 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ============================================
+# AUTO-REFRESH: Actualización automática
+# ============================================
+
+# Crear estado para el último refresh
+if 'last_refresh' not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
+if 'auto_refresh_enabled' not in st.session_state:
+    st.session_state.auto_refresh_enabled = True
+
+# Verificar si han pasado 60 segundos
+tiempo_transcurrido = time.time() - st.session_state.last_refresh
+
+if st.session_state.auto_refresh_enabled and tiempo_transcurrido >= 60:
+    st.session_state.last_refresh = time.time()
+    st.cache_data.clear()
+    st.rerun()
+
+# CSS personalizado
+st.markdown("""
+<style>
+    .main {
+        padding: 0rem 1rem;
+    }
+    .stMetric {
+        background-color: #f0f2f6;
+        padding: 15px;
+        border-radius: 10px;
+    }
+    h1 {
+        color: #1f77b4;
+        padding-bottom: 20px;
+    }
+    h2 {
+        color: #2c3e50;
+        padding-top: 20px;
+    }
+    .highlight {
+        background-color: #e8f4f8;
+        padding: 10px;
+        border-radius: 5px;
+        border-left: 5px solid #1f77b4;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # CSS personalizado
 st.markdown("""
@@ -113,10 +161,31 @@ st.markdown("---")
 with st.sidebar:
     st.header("⚙️ Panel de Control")
     
-    # Botón para recargar datos
-    if st.button("🔄 Actualizar Datos", use_container_width=True):
+    # Toggle de auto-refresh
+    st.session_state.auto_refresh_enabled = st.toggle(
+        "🔄 Auto-Actualización (cada 60s)",
+        value=st.session_state.auto_refresh_enabled
+    )
+    
+    # Mostrar cuenta regresiva
+    if st.session_state.auto_refresh_enabled:
+        segundos_restantes = 60 - int(tiempo_transcurrido)
+        if segundos_restantes > 0:
+            st.info(f"⏱️ Próxima actualización en: **{segundos_restantes}s**")
+        else:
+            st.success("🔄 Actualizando...")
+    
+    # Botón para forzar actualización manual
+    if st.button("🔄 Actualizar Ahora", use_container_width=True):
+        st.session_state.last_refresh = time.time()
         st.cache_data.clear()
         st.rerun()
+    
+    st.markdown("---")
+    
+    # Mostrar última actualización
+    ultima_actualizacion = datetime.fromtimestamp(st.session_state.last_refresh)
+    st.caption(f"📅 Última actualización: {ultima_actualizacion.strftime('%H:%M:%S')}")
     
     st.markdown("---")
     
@@ -129,7 +198,7 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("### 📌 Información")
-    st.info("Dashboard conectado a Azure Cosmos DB en tiempo real")
+    st.info("Dashboard conectado a Azure Cosmos DB. Los datos se actualizan automáticamente cada 60 segundos.")
 
 # Cargar datos
 with st.spinner("🔄 Cargando datos desde Azure..."):
