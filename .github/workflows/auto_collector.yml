@@ -2,9 +2,8 @@ name: Auto Data Collector
 
 on:
   schedule:
-    # Ejecutar cada 5 minutos (GitHub Actions límite)
     - cron: '*/5 * * * *'
-  workflow_dispatch:  # Permite ejecutar manualmente
+  workflow_dispatch:
 
 jobs:
   collect-data:
@@ -27,29 +26,42 @@ jobs:
       env:
         COSMOS_CONNECTION_STRING: ${{ secrets.COSMOS_CONNECTION_STRING }}
       run: |
-        # Crear archivo .env temporal
         echo "COSMOS_CONNECTION_STRING=$COSMOS_CONNECTION_STRING" > .env
-        
-        # Ejecutar collector una vez (1 snapshot)
-        python -c "
+        python3 << 'PYTHON_SCRIPT'
 from data_collector import EcommerceDataCollector
 from azure_connector import AzureCosmosConnector
+import sys
 
-collector = EcommerceDataCollector()
-azure = AzureCosmosConnector()
-
-if azure.conectar():
-    print('Conectado a Azure')
-    datos = collector.recolectar_datos(num_iteraciones=1)
+try:
+    collector = EcommerceDataCollector()
+    azure = AzureCosmosConnector()
     
-    if datos:
-        snapshot = datos[0]
-        for producto in snapshot['productos']:
-            producto['snapshot_id'] = 'auto'
-            producto['snapshot_timestamp'] = snapshot['timestamp']
-            azure.collection.insert_one(producto)
+    if azure.conectar():
+        print('✅ Conectado a Azure')
+        datos = collector.recolectar_datos(num_iteraciones=1)
         
-        print(f'✅ {len(snapshot[\"productos\"])} productos insertados')
-    
-    azure.cerrar_conexion()
-"
+        if datos:
+            snapshot = datos[0]
+            snapshot_id = snapshot.get('snapshot_id', 1)
+            
+            for producto in snapshot['productos']:
+                producto['snapshot_id'] = snapshot_id
+                producto['snapshot_timestamp'] = snapshot['timestamp']
+                azure.collection.insert_one(producto)
+            
+            print(f'✅ {len(snapshot["productos"])} productos insertados')
+        else:
+            print('❌ No se pudieron recolectar datos')
+            sys.exit(1)
+        
+        azure.cerrar_conexion()
+    else:
+        print('❌ No se pudo conectar a Azure')
+        sys.exit(1)
+        
+except Exception as e:
+    print(f'❌ Error: {e}')
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
+PYTHON_SCRIPT
