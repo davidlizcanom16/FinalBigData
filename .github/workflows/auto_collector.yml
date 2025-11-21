@@ -36,4 +36,4 @@ jobs:
     
     - name: Run data collector
       run: |
-        python github_collector.py
+        python github_collector_cached.py
