@@ -13,8 +13,19 @@ class AzureCosmosConnector:
     """
     
     def __init__(self):
-        # Obtener connection string del archivo .env
-        self.connection_string = os.getenv('COSMOS_CONNECTION_STRING')
+        # Obtener connection string - compatible con .env y Streamlit Cloud
+        try:
+            import streamlit as st
+            # Intentar primero desde Streamlit secrets
+            self.connection_string = st.secrets.get("COSMOS_CONNECTION_STRING", None)
+        except:
+            # Si falla (no está en Streamlit), usar .env
+            self.connection_string = None
+        
+        # Si no se encontró en secrets, buscar en .env
+        if not self.connection_string:
+            self.connection_string = os.getenv('COSMOS_CONNECTION_STRING')
+        
         self.client = None
         self.db = None
         self.collection = None
