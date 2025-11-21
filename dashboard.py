@@ -67,51 +67,63 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# CSS personalizado
-st.markdown("""
-<style>
-    .main {
-        padding: 0rem 1rem;
-    }
-    .stMetric {
-        background-color: #f0f2f6;
-        padding: 15px;
-        border-radius: 10px;
-    }
-    h1 {
-        color: #1f77b4;
-        padding-bottom: 20px;
-    }
-    h2 {
-        color: #2c3e50;
-        padding-top: 20px;
-    }
-    .highlight {
-        background-color: #e8f4f8;
-        padding: 10px;
-        border-radius: 5px;
-        border-left: 5px solid #1f77b4;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 # Funciones de caché
-@st.cache_data(ttl=300)  # Cache por 5 minutos
+@st.cache_data(ttl=300)
 def cargar_datos_azure():
-    """Carga datos desde Azure Cosmos DB"""
-    connector = AzureCosmosConnector()
-    if connector.conectar():
-        documentos = list(connector.collection.find({}))
-        connector.cerrar_conexion()
-        df = pd.DataFrame(documentos)
+    """Carga datos desde Azure Cosmos DB con debug"""
+    try:
+        st.write("🔍 DEBUG: Iniciando carga de datos...")
         
-        # Procesar rating si es dict
-        if 'rating' in df.columns and isinstance(df['rating'].iloc[0], dict):
-            df['rating_score'] = df['rating'].apply(lambda x: x.get('rate', 0))
-            df['rating_count'] = df['rating'].apply(lambda x: x.get('count', 0))
+        # Verificar secrets disponibles
+        st.write("🔍 Secrets disponibles:", list(st.secrets.keys()))
         
-        return df
-    return None
+        # Crear connector
+        connector = AzureCosmosConnector()
+        
+        # Verificar connection string
+        if connector.connection_string:
+            st.success(f"✅ Connection string encontrado (primeros 50 chars): {connector.connection_string[:50]}...")
+        else:
+            st.error("❌ Connection string NO encontrado")
+            st.stop()
+        
+        # Intentar conectar
+        st.write("🔍 Intentando conectar a Azure...")
+        
+        if connector.conectar():
+            st.success("✅ Conexión exitosa!")
+            
+            # Obtener documentos
+            st.write("🔍 Obteniendo documentos...")
+            documentos = list(connector.collection.find({}))
+            
+            st.success(f"✅ {len(documentos)} documentos obtenidos")
+            
+            connector.cerrar_conexion()
+            
+            if len(documentos) == 0:
+                st.warning("⚠️ No hay documentos en la base de datos")
+                return None
+            
+            df = pd.DataFrame(documentos)
+            
+            # Procesar rating
+            if 'rating' in df.columns and len(df) > 0:
+                if isinstance(df['rating'].iloc[0], dict):
+                    df['rating_score'] = df['rating'].apply(lambda x: x.get('rate', 0))
+                    df['rating_count'] = df['rating'].apply(lambda x: x.get('count', 0))
+            
+            return df
+        else:
+            st.error("❌ No se pudo conectar a Azure Cosmos DB")
+            return None
+            
+    except Exception as e:
+        st.error(f"❌ Error: {str(e)}")
+        st.code(str(e))
+        import traceback
+        st.code(traceback.format_exc())
+        return None
 
 @st.cache_resource
 def cargar_modelos():
