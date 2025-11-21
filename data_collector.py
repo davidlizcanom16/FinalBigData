@@ -14,10 +14,14 @@ class EcommerceDataCollector:
         self.productos_base = []
         
     def obtener_productos_base(self):
-        """Obtiene los productos base de la API"""
-        print("📡 Obteniendo productos de Fake Store API...")
-        try:
-            response = requests.get(self.api_url)
+    """Obtiene los productos base de la API"""
+    print("📡 Obteniendo productos de Fake Store API...")
+    try:
+        # Headers para evitar bloqueos
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.get(self.api_url, headers=headers, timeout=10)
             if response.status_code == 200:
                 self.productos_base = response.json()
                 print(f"✅ {len(self.productos_base)} productos obtenidos exitosamente")
