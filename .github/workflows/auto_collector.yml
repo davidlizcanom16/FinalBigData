@@ -22,46 +22,43 @@ jobs:
       run: |
         pip install requests pymongo python-dotenv
     
-    - name: Run data collector
+    - name: Create .env file
       env:
         COSMOS_CONNECTION_STRING: ${{ secrets.COSMOS_CONNECTION_STRING }}
       run: |
-        echo "COSMOS_CONNECTION_STRING=$COSMOS_CONNECTION_STRING" > .env
-        python3 << 'PYTHON_SCRIPT'
-from data_collector import EcommerceDataCollector
-from azure_connector import AzureCosmosConnector
-import sys
-
-try:
-    collector = EcommerceDataCollector()
-    azure = AzureCosmosConnector()
+        echo "COSMOS_CONNECTION_STRING=${COSMOS_CONNECTION_STRING}" > .env
     
-    if azure.conectar():
-        print('✅ Conectado a Azure')
-        datos = collector.recolectar_datos(num_iteraciones=1)
-        
-        if datos:
-            snapshot = datos[0]
-            snapshot_id = snapshot.get('snapshot_id', 1)
-            
-            for producto in snapshot['productos']:
-                producto['snapshot_id'] = snapshot_id
-                producto['snapshot_timestamp'] = snapshot['timestamp']
-                azure.collection.insert_one(producto)
-            
-            print(f'✅ {len(snapshot["productos"])} productos insertados')
-        else:
-            print('❌ No se pudieron recolectar datos')
-            sys.exit(1)
-        
-        azure.cerrar_conexion()
-    else:
-        print('❌ No se pudo conectar a Azure')
-        sys.exit(1)
-        
-except Exception as e:
-    print(f'❌ Error: {e}')
-    import traceback
-    traceback.print_exc()
-    sys.exit(1)
-PYTHON_SCRIPT
+    - name: Run data collector
+      run: |
+        python github_collector.py
+```
+
+4. **"Commit changes..."**
+5. Message: `Simplify workflow - use separate script`
+6. **"Commit changes"**
+
+---
+
+## ✅ Ahora debería funcionar
+
+1. Ve a **Actions**
+2. Espera unos segundos y deberías ver el workflow ejecutándose
+3. Debería mostrar **check verde ✅**
+
+---
+
+## 🧪 Probar manualmente
+
+1. En **Actions** → **Auto Data Collector**
+2. Click **"Run workflow"** (ahora debería aparecer)
+3. **"Run workflow"** (botón verde)
+4. Espera 1 minuto
+5. Haz clic en el workflow que se está ejecutando
+6. Click en "collect-data" para ver los logs
+
+Deberías ver:
+```
+✅ Conectado a Azure Cosmos DB
+📦 Recolectados 20 productos
+✅ 20 productos insertados en Azure
+🎉 Recolección completada exitosamente
