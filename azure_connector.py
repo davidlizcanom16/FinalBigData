@@ -13,26 +13,38 @@ class AzureCosmosConnector:
     """
     
     def __init__(self):
-        # Obtener connection string - compatible con .env y Streamlit Cloud
-        try:
-            import streamlit as st
-            # Intentar primero desde Streamlit secrets
-            self.connection_string = st.secrets.get("COSMOS_CONNECTION_STRING", None)
-        except:
-            # Si falla (no está en Streamlit), usar .env
-            self.connection_string = None
-        
-        # Si no se encontró en secrets, buscar en .env
-        if not self.connection_string:
-            self.connection_string = os.getenv('COSMOS_CONNECTION_STRING')
-        
-        self.client = None
-        self.db = None
-        self.collection = None
-        
-        # Configuración de base de datos y colección
-        self.database_name = "ecommerce_db"
-        self.collection_name = "productos"
+    # Obtener connection string - compatible con .env y Streamlit Cloud
+    self.connection_string = None
+    
+    # Intentar primero Streamlit secrets
+    try:
+        import streamlit as st
+        if "COSMOS_CONNECTION_STRING" in st.secrets:
+            self.connection_string = st.secrets["COSMOS_CONNECTION_STRING"]
+            print("🔐 Usando Streamlit secrets")
+    except ImportError:
+        # No estamos en Streamlit
+        pass
+    except Exception as e:
+        print(f"⚠️ No se pudo leer Streamlit secrets: {e}")
+    
+    # Si no se encontró, intentar .env
+    if not self.connection_string:
+        self.connection_string = os.getenv('COSMOS_CONNECTION_STRING')
+        if self.connection_string:
+            print("🔐 Usando .env file")
+    
+    # Verificar que tenemos connection string
+    if not self.connection_string:
+        print("❌ COSMOS_CONNECTION_STRING no encontrado en secrets ni .env")
+    
+    self.client = None
+    self.db = None
+    self.collection = None
+    
+    # Configuración de base de datos y colección
+    self.database_name = "ecommerce_db"
+    self.collection_name = "productos"
     
     def conectar(self):
         """Establece conexión con Azure Cosmos DB"""
