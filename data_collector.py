@@ -22,16 +22,16 @@ class EcommerceDataCollector:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
         response = requests.get(self.api_url, headers=headers, timeout=10)
-            if response.status_code == 200:
-                self.productos_base = response.json()
-                print(f"✅ {len(self.productos_base)} productos obtenidos exitosamente")
-                return True
-            else:
-                print(f"❌ Error: {response.status_code}")
-                return False
-        except Exception as e:
-            print(f"❌ Error de conexión: {e}")
+        if response.status_code == 200:  # <-- AQUÍ estaba el error (tenía un espacio extra)
+            self.productos_base = response.json()
+            print(f"✅ {len(self.productos_base)} productos obtenidos exitosamente")
+            return True
+        else:
+            print(f"❌ Error: {response.status_code}")
             return False
+    except Exception as e:
+        print(f"❌ Error de conexión: {e}")
+        return False
     
     def simular_variacion_precio(self, precio_original):
         """
